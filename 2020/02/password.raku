@@ -24,5 +24,6 @@ class Second {
 }
 
 my $input = slurp.lines.cache;
-say [+] $input.map(-> $l { PassPolicy.parse($l, actions => First).made });
-say [+] $input.map(-> $l { PassPolicy.parse($l, actions => Second).made });
+for First, Second {
+    say [+] $input.map(-> $l { PassPolicy.parse($l, actions => $_).made });
+}
