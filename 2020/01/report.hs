@@ -6,8 +6,7 @@ main = do input <- (map read . lines) <$> getContents
               where toStr (Just n) = show n
                     toStr Nothing = "Couln't find the entries!"
 
-report2 :: [Int] -> Maybe Int
-report3 :: [Int] -> Maybe Int
+report2, report3 :: [Int] -> Maybe Int
 report2 = fmap (uncurry (*)) . find ((== 2020) . uncurry (+)) . pairs
 report3 = fmap (fold3 (*)) . find ((== 2020) . fold3 (+)) . triplets
 
