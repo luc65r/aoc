@@ -1,7 +1,8 @@
 import Data.Bits
-import Text.Read
 import Data.Char
+import Text.Read
 import Control.Monad
+import Control.Applicative
 
 data Pass = Pass { first :: Int
                  , second :: Int
@@ -23,7 +24,7 @@ getc :: Char -> ReadPrec ()
 getc c = (>> pure ()) . guard . (c ==) =<< get
 
 getString :: ReadPrec String
-getString = look >>= flip replicateM get . length -- TODO: don't look, just get
+getString = some get
 
 spaces :: ReadPrec a -> ReadPrec a
 spaces m = look >>= skip
