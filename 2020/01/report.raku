@@ -1,3 +1,8 @@
 #!/usr/bin/env raku
 
-say [×] combinations(slurp.lines, 2).first: *.sum == 2020
+use v6;
+
+my $input = slurp.lines.cache;
+for 2..3 {
+    say [×] combinations($input, $_).first: *.sum == 2020;
+}
