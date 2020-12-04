@@ -21,8 +21,8 @@ grammar Batch {
 class Valid {
     method TOP($/) {
         my $allFields = ("byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid")
-            ⊆ $<field>.map(*.<sym>.Str);
-        my $fieldsValid = [&&] $<field>.map(*.made);
+            ⊆ $<field>».&{.<sym>.Str};
+        my $fieldsValid = [&&] $<field>».made;
         make ($allFields, $allFields && $fieldsValid);
     }
 
@@ -47,6 +47,6 @@ class Valid {
     method field:sym<cid>($/) { make True; }
 }
 
-my $valid = slurp.split("\n\n").map(-> $l { Batch.parse($l, actions => Valid).made }).cache;
-say [+] $valid.map(*[0]);
-say [+] $valid.map(*[1]);
+my $valid = slurp.split("\n\n")».&{Batch.parse($_, actions => Valid).made};
+say [+] $valid».[0];
+say [+] $valid».[1];
