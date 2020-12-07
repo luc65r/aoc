@@ -66,7 +66,7 @@ run() {
     esac
 
     printf "Running %s..." "$1"
-    output="$("./$exe" < input 2> /dev/null)" || {
+    output="$("$exe" < input 2> /dev/null)" || {
         printf " \e[31mFailed!\n\e[m"
         return
     }
@@ -86,7 +86,8 @@ run() {
 main() {
     for dir in "$(dirname "$0")"/20??/??; do
         pushd "$dir" > /dev/null
-        for file in *; do
+        rm -f ./*.o
+        for file in ./*; do
             run "$file"
         done
         popd > /dev/null
