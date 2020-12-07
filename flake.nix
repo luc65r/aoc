@@ -27,6 +27,7 @@
         gcc
         ghc
         zig
+        rustc
         rakudo
         rlwrap
       ];

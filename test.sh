@@ -2,6 +2,7 @@
 
 CFLAGS="-O3"
 ZIGFLAGS="--release-fast"
+RUSTFLAGS="-O"
 
 has() {
     type -p "$1" > /dev/null
@@ -45,6 +46,19 @@ run() {
                 }
             else
                 printf "\e[31mCan't run zig\n\e[m"
+                return
+            fi
+            ;;
+
+        *.rs)
+            exe="${1%.rs}"
+            if has "rustc"; then
+                rustc $RUSTFLAGS "$1" > /dev/null 2> /dev/null || {
+                    printf "\e[31rustc failed on %s!\n\e[m" "$1"
+                    return
+                }
+            else
+                printf "\e[31mCan't run rustc\n\e[m"
                 return
             fi
             ;;
