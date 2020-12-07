@@ -29,7 +29,9 @@
         zig
         rustc
         rakudo
+
         rlwrap
+        hyperfine
       ];
     };
   };
