@@ -17,14 +17,19 @@ class Colors {
     }
 }
 
-sub contains($color, %colors) {
-    if %colors{$color}.elems == 0 {
+sub contains-gold($color, %colors, %cache) {
+    if %cache{$color}:exists {
+        return %cache{$color};
+    } elsif %colors{$color}.elems == 0 {
         return False;
-    }
-    if "shiny gold" ∈ %colors{$color}».key {
+    } elsif "shiny gold" ∈ %colors{$color}».key {
         return True;
     } else {
-        return [||] %colors{$color}».&{contains($_.key, %colors)}.List;
+        return [||] %colors{$color}».&{
+            my $cg = contains-gold($_.key, %colors, %cache);
+            %cache{$_.key} = $cg;
+            $cg
+        }.List;
     }
 }
 
@@ -40,5 +45,6 @@ for @input {
     %colors.push: Bag.parse($_, actions => Colors).made;
 }
 
-say [+] %colors.keys».&{contains($_, %colors)};
+my %cache;
+say [+] %colors.keys».&{contains-gold($_, %colors, %cache)};
 say count("shiny gold", %colors);
