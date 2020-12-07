@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 CFLAGS="-O3"
+HSFLAGS="-O"
 ZIGFLAGS="--release-fast"
 RUSTFLAGS="-O"
 
@@ -27,7 +28,7 @@ run() {
         *.hs)
             exe="${1%.hs}"
             if has "ghc"; then
-                ghc --make "$1" > /dev/null 2> /dev/null || {
+                ghc $HSFLAGS --make "$1" > /dev/null 2> /dev/null || {
                     printf "\e[31mghc failed on %s!\n\e[m" "$1"
                     return
                 }
