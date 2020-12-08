@@ -7,7 +7,7 @@ instance Read Instruction where
     readPrec = do
         Ident op <- lexP
         Symbol sign <- lexP
-        n <- step readPrec
+        n <- readPrec
         let arg = case sign of
                     "+" -> n
                     "-" -> -n
@@ -23,11 +23,9 @@ data Program = Program { instructions :: [(Instruction, Bool)]
                        , ended :: Bool
                        }
 
-main = do input <- lines <$> getContents
-          let ins = map read input
-          let prog = Program (zip ins (repeat False)) 0 0 False False
-          putStrLn . show . accumulator . execute $ prog
-          putStrLn . show . accumulator . head . filter ended . map (\i -> execute $ Program (zip i (repeat False)) 0 0 False False) . changed $ ins
+main = do ins <- (map read . lines) <$> getContents
+          putStrLn . show . accumulator . execute . toProg $ ins
+          putStrLn . show . accumulator . head . filter ended . map (execute . toProg) . changed $ ins
 
 changed :: [Instruction] -> [[Instruction]]
 changed [] = [[]]
@@ -45,10 +43,16 @@ oneStep (Program ins pl acc False False)
     | otherwise = 
         case ins !! pl of
           (_, True) -> Program ins pl acc True False
-          (Acc n, _) -> Program (replace pl (Acc n, True) ins) (pl + 1) (acc + n) False False
-          (Jmp n, _) -> Program (replace pl (Jmp n, True) ins) (pl + n) acc False False
-          (Nop n, _) -> Program (replace pl (Nop n, True) ins) (pl + 1) acc False False
+          (Acc n, _) -> Program (ran pl ins) (pl + 1) (acc + n) False False
+          (Jmp n, _) -> Program (ran pl ins) (pl + n) acc False False
+          (Nop n, _) -> Program (ran pl ins) (pl + 1) acc False False
 
-replace :: Int -> a -> [a] -> [a]
-replace n x l = xs ++ x:ys
-    where (xs, _:ys) = splitAt n l
+ran :: Int -> [(Instruction, Bool)] -> [(Instruction, Bool)]
+ran pl = replace pl (\(i, _) -> (i, True))
+
+replace :: Int -> (a -> a) -> [a] -> [a]
+replace n f l = xs ++ (f y):ys
+    where (xs, y:ys) = splitAt n l
+
+toProg :: [Instruction] -> Program
+toProg ins = Program (zip ins (repeat False)) 0 0 False False
