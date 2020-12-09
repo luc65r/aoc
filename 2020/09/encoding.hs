@@ -1,5 +1,3 @@
-import Data.List
-
 main = do input <- (map read . lines) <$> getContents
           let ns = firstNonSum $ input
           putStrLn . show $ ns
@@ -12,7 +10,7 @@ firstNonSum xs
     where x = xs !! 25
 
 isSum :: Int -> [Int] -> Bool
-isSum n = any ((== n) . sum) . filter ((== 2) . length) . subsequences
+isSum n = any ((== n) . uncurry (+)) . pairs
 
 findC :: Int -> [Int] -> Int
 findC n xs
@@ -20,3 +18,7 @@ findC n xs
     | otherwise = findC n (tail xs)
     where s = takeWhile (<= n) . scanl (+) 0 $ xs
           range = take (length s - 1) xs
+
+pairs :: [a] -> [(a, a)]
+pairs [x] = []
+pairs (x:xs) = map ((,) x) xs ++ pairs xs
