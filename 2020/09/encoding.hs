@@ -1,13 +1,7 @@
-import Data.Monoid
-import Data.List
-import Control.Monad.State
-
 main = do input <- (map read . lines) <$> getContents
           let ns = firstNonSum $ input
-              (a, n) = evalState (findEq ns input) []
-              l = take n . drop a $ input
           putStrLn . show $ ns
-          putStrLn . show $ maximum l + minimum l
+          putStrLn . show . findC ns $ input
 
 firstNonSum :: [Int] -> Int
 firstNonSum xs
@@ -15,17 +9,15 @@ firstNonSum xs
     | otherwise = x
     where x = xs !! 25
 
-findEq :: Int -> [Int] -> State [Maybe Int] (Int, Int)
-findEq n (x:xs) = do
-    modify $ map (mfilter (<= n) . fmap (+ x)) . (return 0 :)
-    m <- get
-    case findIndex (any (== n)) m of
-        Just i -> let a = length m - i - 1
-                   in return (a, i)
-        Nothing -> findEq n xs
-
 isSum :: Int -> [Int] -> Bool
 isSum n = any ((== n) . uncurry (+)) . pairs
+
+findC :: Int -> [Int] -> Int
+findC n xs
+    | last s == n = minimum range + maximum range
+    | otherwise = findC n (tail xs)
+    where s = takeWhile (<= n) . scanl (+) 0 $ xs
+          range = take (length s - 1) xs
 
 pairs :: [a] -> [(a, a)]
 pairs [x] = []
