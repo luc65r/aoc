@@ -1,4 +1,10 @@
-import Text.Read
+{-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE LambdaCase #-}
+
+import Text.Read hiding (step, get)
+import Data.Array
+import Data.Monoid
+import Control.Monad.State
 
 data Instruction = Acc Int | Jmp Int | Nop Int
     deriving (Show)
@@ -16,43 +22,42 @@ instance Read Instruction where
                    "jmp" -> Jmp arg
                    "nop" -> Nop arg
 
-data Program = Program { instructions :: [(Instruction, Bool)]
-                       , place :: Int
+flipInstruction :: Instruction -> Instruction
+flipInstruction (Acc n) = Acc n
+flipInstruction (Nop n) = Jmp n
+flipInstruction (Jmp n) = Nop n
+
+data Program = Program { instructions :: Array Int Instruction
+                       , executed :: Array Int Bool
                        , accumulator :: Int
-                       , infinite :: Bool
-                       , ended :: Bool
-                       }
+                       , position :: Int
+                       } deriving (Show)
 
-main = do ins <- (map read . lines) <$> getContents
-          putStrLn . show . accumulator . execute . toProg $ ins
-          putStrLn . show . accumulator . head . filter ended . map (execute . toProg) . changed $ ins
+data Status = Running | Loop | Terminated
+    deriving (Show, Eq)
 
-changed :: [Instruction] -> [[Instruction]]
-changed [] = [[]]
-changed (i:is) = case i of
-                   Acc n -> map (i:) . changed $ is
-                   Jmp n -> ((Nop n):is) : (map (i:) . changed $ is)
-                   Nop n -> ((Jmp n):is) : (map (i:) . changed $ is)
+main = do insts <- (map read . lines) <$> getContents
+          let len = length insts - 1
+              pgm = Program (listArray (0, len) insts) (listArray (0, len) $ repeat False) 0 0
+          putStrLn . show . accumulator . execState run $ pgm
 
-execute :: Program -> Program
-execute = until (\p -> infinite p || ended p) oneStep
 
-oneStep :: Program -> Program
-oneStep (Program ins pl acc False False)
-    | pl == length ins = Program ins pl acc False True
-    | otherwise = 
-        case ins !! pl of
-          (_, True) -> Program ins pl acc True False
-          (Acc n, _) -> Program (ran pl ins) (pl + 1) (acc + n) False False
-          (Jmp n, _) -> Program (ran pl ins) (pl + n) acc False False
-          (Nop n, _) -> Program (ran pl ins) (pl + 1) acc False False
+exec :: Instruction -> State Program ()
+exec (Acc n) = modify $ \p -> p { accumulator = accumulator p + n
+                                , position = position p + 1
+                                }
+exec (Nop _) = modify $ \p -> p { position = position p + 1 }
+exec (Jmp n) = modify $ \p -> p { position = position p + n }
 
-ran :: Int -> [(Instruction, Bool)] -> [(Instruction, Bool)]
-ran pl = replace pl (\(i, _) -> (i, True))
+step :: State Program Status
+step = get >>= \p ->
+    if | position p > (snd . bounds . instructions $ p) -> return Terminated
+       | executed p ! position p -> return Loop
+       | otherwise -> do
+           put p { executed = executed p // [(position p, True)] }
+           exec $ instructions p ! position p
+           return Running
 
-replace :: Int -> (a -> a) -> [a] -> [a]
-replace n f l = xs ++ (f y):ys
-    where (xs, y:ys) = splitAt n l
-
-toProg :: [Instruction] -> Program
-toProg ins = Program (zip ins (repeat False)) 0 0 False False
+run :: State Program Status
+run = step >>= \case Running -> run
+                     other -> return other
