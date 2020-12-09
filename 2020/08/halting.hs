@@ -4,7 +4,8 @@
 import Text.Read hiding (step, get)
 import Data.Array
 import Data.Monoid
-import Control.Monad.State
+import Control.Monad.RWS
+import Control.Arrow
 
 data Instruction = Acc Int | Jmp Int | Nop Int
     deriving (Show)
@@ -27,37 +28,30 @@ flipInstruction (Acc n) = Acc n
 flipInstruction (Nop n) = Jmp n
 flipInstruction (Jmp n) = Nop n
 
-data Program = Program { instructions :: Array Int Instruction
-                       , executed :: Array Int Bool
-                       , accumulator :: Int
-                       , position :: Int
-                       } deriving (Show)
-
 data Status = Running | Loop | Terminated
     deriving (Show, Eq)
 
 main = do insts <- (map read . lines) <$> getContents
           let len = length insts - 1
-              pgm = Program (listArray (0, len) insts) (listArray (0, len) $ repeat False) 0 0
-          putStrLn . show . accumulator . execState run $ pgm
+          putStrLn . show . getSum . snd . execRWS run (listArray (0, len) insts) $ (0, listArray (0, len) $ repeat False)
 
 
-exec :: Instruction -> State Program ()
-exec (Acc n) = modify $ \p -> p { accumulator = accumulator p + n
-                                , position = position p + 1
-                                }
-exec (Nop _) = modify $ \p -> p { position = position p + 1 }
-exec (Jmp n) = modify $ \p -> p { position = position p + n }
+exec :: Instruction -> RWS a (Sum Int) (Int, b) ()
+exec (Acc n) = tell (Sum n) >> modify (first (+ 1))
+exec (Nop _) = modify $ first (+ 1)
+exec (Jmp n) = modify $ first (+ n)
 
-step :: State Program Status
-step = get >>= \p ->
-    if | position p > (snd . bounds . instructions $ p) -> return Terminated
-       | executed p ! position p -> return Loop
+step :: RWS (Array Int Instruction) (Sum Int) (Int, Array Int Bool) Status
+step = do
+    (p, e) <- get
+    insts <- ask
+    if | p > (snd . bounds $ insts) -> return Terminated
+       | e ! p -> return Loop
        | otherwise -> do
-           put p { executed = executed p // [(position p, True)] }
-           exec $ instructions p ! position p
+           put (p, e // [(p, True)])
+           exec $ insts ! p
            return Running
 
-run :: State Program Status
+run :: RWS (Array Int Instruction) (Sum Int) (Int, Array Int Bool) Status
 run = step >>= \case Running -> run
                      other -> return other
