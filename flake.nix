@@ -29,6 +29,7 @@
         zig
         rustc
         rakudo
+        go
 
         rlwrap
         hyperfine
