@@ -64,6 +64,19 @@ run() {
             fi
             ;;
 
+        *.go)
+            exe="${1%.go}"
+            if has "go"; then
+                go build "$1" > /dev/null 2> /dev/null || {
+                    printf "\e[31go failed on %s!\n\e[m" "$1"
+                    return
+                }
+            else
+                printf "\e[31mCan't run go\n\e[m"
+                return
+            fi
+            ;;
+
         *.raku)
             exe="$1"
             if has "raku"; then
