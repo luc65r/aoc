@@ -1,77 +1,85 @@
-import qualified Data.Map as M
+import Data.List
+import Data.Array
+import Control.Monad.State
 
 data Seat = Floor | Empty | Occuped
-    deriving (Show, Eq)
+    deriving (Eq)
 
-type Seats = M.Map (Int, Int) Seat
+instance Show Seat where
+    show Floor = "."
+    show Empty = "L"
+    show Occuped = "#"
+
+type Seats = Array (Int, Int) Seat
 
 cToSeat :: Char -> Seat
 cToSeat '.' = Floor
 cToSeat 'L' = Empty
 cToSeat '#' = Occuped
 
-main = do input <- lines <$> getContents
-          let seats = M.fromList . makeKV . map (map cToSeat) $ input
-          putStrLn . show . M.size . M.filter (== Occuped) . stabilize (oneRound updateSeat) $ seats
-          --putStrLn . show . stabilize (oneRound updateSeat2) $ seats
-          putStrLn . show . M.size . M.filter (== Occuped) . stabilize (oneRound updateSeat2) $ seats
+display :: Seats -> String
+display = unlines . map (concatMap $ show . snd) .
+    groupBy (\((a, _), _) ((b, _), _) -> a == b) . assocs
 
-mtl :: [Maybe a] -> [a]
-mtl [] = []
-mtl (Nothing:xs) = mtl xs
-mtl ((Just x):xs) = x : (mtl xs)
+main = do input <- (map (map cToSeat) . lines) <$> getContents
+          let h = length input
+              w = length $ input !! 0
+              seats = listArray ((0, 0), (h - 1, w - 1)) $ concat input
+              nbOccuped = length . filter (== Occuped) . elems
+          putStrLn . show . execState (stabilize $ step updateSeat) $ seats
+          putStrLn . show . execState (stabilize $ step updateSeat2) $ seats
 
-makeKV :: [[Seat]] -> [((Int, Int), Seat)]
-makeKV = foldl (\acc (y, ss) -> acc ++
-    map (\(x, s) -> ((y, x), s)) (zip [0..] ss)) [] . zip [0..]
-
-
-oneRound :: ((Int, Int) -> Seats -> Seat) -> Seats -> Seats
-oneRound f st = M.mapWithKey (\p _ -> f p st) st
+neighbours :: [(Int -> Int, Int -> Int)]
+neighbours = [ (m , m), (m, id), (m , p)
+             , (id, m),          (id, p)
+             , (p , m), (p, id), (p , p)
+             ]
+    where m = flip (-) 1
+          p = (+ 1)
 
 updateSeat :: (Int, Int) -> Seats -> Seat
-updateSeat p@(y, x) st = let neighPlace = [ (y-1, x-1), (y-1, x), (y-1, x+1)
-                                          , (y  , x-1),           (y  , x+1)
-                                          , (y+1, x-1), (y+1, x), (y+1, x+1)
-                                          ]
-                             neigh = mtl . map (flip M.lookup st) $ neighPlace
-                             nbOccuped = length . filter (== Occuped) $ neigh
-                          in case st M.! p of
-                               Floor -> Floor
-                               Empty -> if nbOccuped == 0
-                                           then Occuped
-                                           else Empty
-                               Occuped -> if nbOccuped < 4
-                                             then Occuped
-                                             else Empty
+updateSeat p@(y, x) st =
+    let neighs = map (st !) . filter (inRange $ bounds st) .
+            map (\(fy, fx) -> (fy y, fx x)) $ neighbours
+        nbOccuped = length . filter (== Occuped) $ neighs
+     in case st ! p of
+          Floor -> Floor
+          Empty -> if nbOccuped == 0
+                      then Occuped
+                      else Empty
+          Occuped -> if nbOccuped < 4
+                        then Occuped
+                        else Empty
 
 occDir :: (Int, Int) -> (Int -> Int, Int -> Int) -> Seats -> Bool
-occDir p@(y, x) (fy, fx) st = case M.lookup p st of
-                                Nothing -> False
-                                Just s -> case s of
-                                            Occuped -> True
-                                            Empty -> False
-                                            Floor -> occDir (fy y, fx x) (fy, fx) st
+occDir p@(y, x) (fy, fx) st
+    | not . inRange (bounds st) $ p = False
+    | otherwise = case st ! p of
+                    Occuped -> True
+                    Empty -> False
+                    Floor -> occDir (fy y, fx x) (fy, fx) st
 
 updateSeat2 :: (Int, Int) -> Seats -> Seat
-updateSeat2 pl@(y, x) st = let m = flip (-) 1
-                               p = (+ 1)
-                               dirs = [ (m , m), (m, id), (m , p)
-                                      , (id, m),          (id, p)
-                                      , (p , m), (p, id), (p , p)
-                                      ]
-                               nbOccuped = length . filter id . map (\(fy, fx) -> occDir (fy y, fx x) (fy, fx) st) $ dirs
-                           in case st M.! pl of
-                                Floor -> Floor
-                                Empty -> if nbOccuped == 0
-                                            then Occuped
-                                            else Empty
-                                Occuped -> if nbOccuped < 5
-                                              then Occuped
-                                              else Empty
+updateSeat2 pl@(y, x) st =
+    let occupedNeighs = map (\(fy, fx) -> occDir (fy y, fx x) (fy, fx) st) $ neighbours
+        nbOccuped = length . filter id $ occupedNeighs
+     in case st ! pl of
+          Floor -> Floor
+          Empty -> if nbOccuped == 0
+                      then Occuped
+                      else Empty
+          Occuped -> if nbOccuped < 5
+                        then Occuped
+                        else Empty
 
-stabilize :: (Seats -> Seats) -> Seats -> Seats
-stabilize f st = let updated = f st
-                  in if st == updated
-                        then updated
-                        else stabilize f updated
+step :: ((Int, Int) -> Seats -> Seat) -> Seats -> Seats
+step f st = listArray (bounds st) . map (flip f st) . indices $ st
+
+stabilize :: (Seats -> Seats) -> State Seats ()
+stabilize f = do
+    lastState <- get
+    modify f
+    currentState <- get
+    if lastState == currentState
+       then return ()
+       else stabilize f
