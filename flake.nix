@@ -33,6 +33,7 @@
 
         rlwrap
         hyperfine
+        gdb
       ];
     };
   };
