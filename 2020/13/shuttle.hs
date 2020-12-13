@@ -7,8 +7,7 @@ main = do
     ids <- (map readMaybe . split ',') <$> getLine
     putStrLn . show . uncurry (*)
       . minimumBy (\(_, x) (_, y) -> compare x y)
-      . map (\x -> (x, x - (ts `mod` x)))
-      . map (\(Just n) -> n)
+      . map (\(Just x) -> (x, x - (ts `mod` x)))
       . filter isJust $ ids
 
     let ns :: [(Integer, Integer)]
