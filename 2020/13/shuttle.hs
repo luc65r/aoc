@@ -1,25 +1,33 @@
 import Data.List
+import Data.Maybe
 import Text.Read
 
-main = do ts <- read <$> getLine
-          ids <- (map readMaybe . split ',') <$> getLine
-          putStrLn . show . uncurry (*)
-            . minimumBy (\(_, x) (_, y) -> compare x y)
-            . map (\x -> (x, x - (ts `mod` x)))
-            . map (\(Just n) -> n)
-            . filter (/= Nothing) $ ids
+main = do
+    ts <- read <$> getLine
+    ids <- (map readMaybe . split ',') <$> getLine
+    putStrLn . show . uncurry (*)
+      . minimumBy (\(_, x) (_, y) -> compare x y)
+      . map (\x -> (x, x - (ts `mod` x)))
+      . map (\(Just n) -> n)
+      . filter isJust $ ids
 
-          let Just fid = head ids
-              Just time = find (\n -> follow n ids) . iterate (+ fid) $ fid
-          putStrLn . show $ time
+    let ns :: [(Integer, Integer)]
+        ns = map (\(a, Just n) -> (a `mod` n, n)) . filter (isJust . snd) . zip [0..] $ ids
+        p = foldl ((. snd) . (*)) 1 ns
+        aes = do
+            (a, n) <- ns
+            let inv = p `div` n
+                (_, _, v) = euclid n inv
+                e = v * inv
+            return $ a * e
+    putStrLn . show . (`mod` p) . negate . sum $ aes
 
-follow :: Integer -> [Maybe Integer] -> Bool
-follow n [Nothing] = True
-follow n [(Just x)] = n `mod` x == 0
-follow n (Nothing:xs) = follow (n + 1) xs
-follow n ((Just x):xs)
-    | n `mod` x == 0 = follow (n + 1) xs
-    | otherwise = False
+-- https://fr.wikipedia.org/wiki/Algorithme_d%27Euclide_%C3%A9tendu#Pseudo-code
+euclid :: Integral a => a -> a -> (a, a, a)
+euclid a b = eucl a 1 0 b 0 1
+eucl r u v 0 u' v' = (r, u, v)
+eucl r u v r' u' v' = eucl r' u' v' (r - r'' * r') (u - r'' * u') (v - r'' * v')
+    where r'' = r `div` r'
 
 split :: Eq a => a -> [a] -> [[a]]
 split _ [x] = [[x]]
