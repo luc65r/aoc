@@ -1,11 +1,20 @@
 {
   description = "My solutions for Advent of Code";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    mozilla = {
+      url = "github:mozilla/nixpkgs-mozilla";
+      flake = false;
+    };
+  };
 
-  outputs = { self, nixpkgs }: {
+  outputs = { self, nixpkgs, mozilla }: {
     defaultPackage.x86_64-linux = with import nixpkgs {
       system = "x86_64-linux";
+      overlays = [
+        (import mozilla)
+      ];
     }; stdenv.mkDerivation {
       name = "aoc";
       src = self;
@@ -27,7 +36,7 @@
         gcc
         ghc
         zig
-        rustc
+        latest.rustChannels.stable.rust
         rakudo
         go
 
