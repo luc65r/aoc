@@ -36,7 +36,7 @@
         gcc
         ghc
         zig
-        latest.rustChannels.stable.rust
+        latest.rustChannels.nightly.rust
         rakudo
         go
 
