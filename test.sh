@@ -98,7 +98,7 @@ run() {
         printf " \e[31mFailed!\n\e[m"
         return
     }
-    answer="$(< answers)" || {
+    [ -f answers ] && answer="$(< answers)" || {
         printf " \e[31mFailed to get answers from file!\n\e[m"
         return
     }
