@@ -48,5 +48,5 @@ class Valid {
 }
 
 my $valid = slurp.split("\n\n")».&{Batch.parse($_, actions => Valid).made};
-say [+] $valid».[0];
-say [+] $valid».[1];
+say [+] $valid»[0];
+say [+] $valid»[1];
