@@ -2,7 +2,7 @@
 
 use v6;
 
-my $input = slurp.lines.cache;
+my int @input = slurp.lines.map(+*);
 for 2..3 {
-    say [×] combinations($input, $_).first: *.sum == 2020;
+    say [×] @input.combinations($_).first: *.sum == 2020;
 }
