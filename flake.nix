@@ -36,7 +36,11 @@
         gcc
         ghc
         zig
-        latest.rustChannels.nightly.rust
+        (rustChannelOf {
+          date = "2020-12-23";
+          channel = "nightly";
+          sha256 = "LbKHsCOFXWpg/SEyACfzZuWjKbkXdH6EJKOPSGoO01E=";
+        }).rust
         rakudo
         go
 
